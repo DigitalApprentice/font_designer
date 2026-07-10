@@ -1,0 +1,1436 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Antigravity | LED Font Designer</title>
+    <style>
+        :root {
+            --bg: #0a0a0c;
+            --surface: #121217;
+            --accent: #00f2ff;
+            --accent-glow: rgba(0, 242, 255, 0.3);
+            --text: #e0e0e6;
+            --text-dim: #80808a;
+            --border: #1a1a20;
+            --pixel-off: #1a1a20;
+            --pixel-on: #00f2ff;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', -apple-system, system-ui, sans-serif;
+            display: grid;
+            grid-template-columns: 280px 1fr 4px 350px;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Sidebars */
+        sidebar {
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .sidebar-right {
+            border-right: none;
+            border-left: 1px solid var(--border);
+        }
+
+        h1 { font-size: 1.2rem; font-weight: 700; margin-bottom: 20px; color: var(--accent); letter-spacing: -0.5px; }
+        h2 { font-size: 0.8rem; font-weight: 600; text-transform: uppercase; color: var(--text-dim); margin-bottom: 15px; letter-spacing: 1px; }
+
+        /* Controls */
+        .control-group { margin-bottom: 25px; }
+        .input-inline { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        label { display: block; font-size: 0.75rem; margin-bottom: 5px; color: var(--text-dim); }
+        input {
+            width: 100%;
+            background: #000;
+            border: 1px solid var(--border);
+            color: var(--accent);
+            padding: 8px;
+            border-radius: 4px;
+            font-family: monospace;
+            outline: none;
+        }
+        input:focus { border-color: var(--accent); }
+
+        /* Char list */
+        .char-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 5px;
+        }
+        .char-btn {
+            background: #1a1a20;
+            border: 1px solid transparent;
+            color: var(--text);
+            padding: 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            text-align: center;
+            font-family: monospace;
+        }
+        .char-btn:hover { background: #2a2a35; }
+        .char-btn.active { border-color: var(--accent); color: var(--accent); background: #121217; }
+
+        /* Main Editor */
+        main {
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle at center, #121217 0%, #0a0a0c 100%);
+        }
+
+        .editor-container {
+            position: relative;
+            background: #000;
+            border: 1px solid var(--border);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+        }
+
+        .pixel-grid {
+            display: grid;
+            gap: 2px;
+            user-select: none;
+        }
+        .pixel {
+            width: 35px;
+            height: 35px;
+            background: var(--pixel-off);
+            border-radius: 2px;
+            cursor: crosshair;
+            transition: all 0.1s ease;
+        }
+        .pixel.on {
+            background: var(--pixel-on);
+            box-shadow: 0 0 15px var(--accent-glow);
+        }
+        .pixel:hover { filter: brightness(1.5); }
+
+        /* Actions */
+        .actions { margin-top: 30px; display: flex; gap: 10px; }
+        button.primary {
+            background: var(--accent);
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        button.secondary {
+            background: #1a1a20;
+            color: var(--text);
+            border: 1px solid #2a2a35;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.15s ease;
+        }
+        button.secondary:hover {
+            background: #2a2a35;
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+        button:hover { filter: contrast(1.2); }
+        button:active { transform: scale(0.98); }
+
+        /* Code panel */
+        pre {
+            background: #000;
+            padding: 15px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            color: #10ff70;
+            overflow-x: auto;
+            max-height: 500px;
+            border: 1px solid var(--border);
+        }
+        .code-container { position: relative; }
+        .copy-toast {
+            position: absolute;
+            top: -30px;
+            right: 0;
+            background: var(--accent);
+            color: #000;
+            padding: 4px 8px;
+            font-size: 0.7rem;
+            border-radius: 4px;
+            display: none;
+        }
+
+        /* Preview */
+        .preview-container {
+            margin-top: 50px;
+            display: flex;
+            gap: 10px;
+            background: #000;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .char-preview { display: grid; gap: 1px; transform: scale(0.8); }
+        .p-pix { width: 5px; height: 5px; background: #222; }
+        .p-pix.on { background: var(--accent); }
+
+        /* Preview Groups */
+        .preview-wrapper { display: flex; flex-direction: column; gap: 20px; align-items: center; }
+        .preview-group { display: flex; gap: 10px; align-items: flex-start; }
+        .preview-group-label {
+            font-size: 0.7rem; text-transform: uppercase; color: var(--text-dim);
+            margin-bottom: 5px; text-align: center; letter-spacing: 1px;
+        }
+        .preview-empty { opacity: 0.15; }
+
+        /* Undo */
+        .undo-btn { position: relative; }
+        .undo-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        /* Save info */
+        .save-info {
+            font-size: 0.7rem; color: var(--text-dim); margin-top: 8px;
+            word-break: break-all; text-align: center;
+        }
+
+        /* Button rows */
+        .btn-row { display: flex; gap: 8px; }
+        .btn-row button { flex: 1; }
+
+        /* Resizer */
+        #resizer {
+            width: 4px;
+            background: var(--border);
+            cursor: col-resize;
+            transition: background 0.2s;
+            z-index: 10;
+        }
+        #resizer:hover { background: var(--accent); }
+        #resizer.dragging { background: var(--accent); width: 6px; }
+
+        /* Modal dialog */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease;
+        }
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .modal-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            width: 650px;
+            max-width: 90%;
+            border-radius: 8px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 10px;
+        }
+        .modal-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .modal-close {
+            background: transparent;
+            border: none;
+            color: var(--text-dim);
+            font-size: 1.5rem;
+            cursor: pointer;
+            outline: none;
+        }
+        .modal-close:hover {
+            color: var(--accent);
+        }
+        .modal-body {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+    </style>
+</head>
+<body>
+
+    <sidebar>
+        <h1>CLeds Editor</h1>
+        
+        <div class="control-group">
+            <h2>Ustawienia Matrycy</h2>
+            <div class="input-inline">
+                <div>
+                    <label>Szerokość</label>
+                    <input type="number" id="width" value="3" min="1" max="16">
+                </div>
+                <div>
+                    <label>Wysokość</label>
+                    <input type="number" id="height" value="9" min="1" max="32">
+                </div>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <h2>Nawigacja ASCII</h2>
+            <div class="input-inline">
+                <div>
+                    <label>Start</label>
+                    <input type="number" id="ascii_start" value="32" min="0" max="255">
+                </div>
+                <div>
+                    <label>End</label>
+                    <input type="number" id="ascii_end" value="126" min="0" max="255">
+                </div>
+            </div>
+            <div style="margin-top: 15px;">
+                <label>Aktualny Znak</label>
+                <div id="char_btn_grid" class="char-grid"></div>
+            </div>
+        </div>
+    </sidebar>
+
+    <main>
+        <div id="editor_title" style="margin-bottom: 20px; font-weight: bold; color: var(--accent);">Znak: Spacja (32)</div>
+        <div class="editor-container">
+            <div id="grid" class="pixel-grid"></div>
+        </div>
+
+        <div class="actions" style="width: 100%; justify-content: center;">
+            <button class="secondary undo-btn" id="undoBtn" onclick="undo()" disabled>Cofnij (Ctrl+Z)</button>
+            <button class="secondary" onclick="clearChar()">Wyczyść Znak</button>
+        </div>
+
+        <div class="preview-container" id="preview_area"></div>
+    </main>
+
+    <div id="resizer"></div>
+
+    <sidebar class="sidebar-right">
+        <h2 id="output_code_title">Wygenerowany Kod Pythona</h2>
+        <div class="code-container">
+            <div id="copy_msg" class="copy-toast">Skopiowano!</div>
+            <pre id="output_code"># Edytuj bity, aby zobaczyć kod...</pre>
+        </div>
+
+        <div class="control-group" style="margin-top: 15px;">
+            <label>Format pliku</label>
+            <select id="export_format" style="width: 100%; background: #000; border: 1px solid var(--border); color: var(--accent); padding: 8px; border-radius: 4px; outline: none; margin-top: 5px;">
+                <option value="py">Python (.py)</option>
+                <option value="h">C Header (.h)</option>
+            </select>
+        </div>
+
+        <div class="control-group" style="margin-top: 15px;">
+            <label>Nazwa pliku</label>
+            <input type="text" id="filename" value="f3x9_custom.py" style="margin-top: 5px;">
+            <div class="btn-row" style="margin-top: 10px;">
+                <button class="secondary" onclick="copyCode()">Kopiuj</button>
+                <button class="secondary" onclick="saveFileAs()">Zapisz Jako</button>
+                <button class="primary" id="saveBtn" onclick="saveFile()">Zapisz</button>
+            </div>
+            <div class="save-info" id="save_path_info">Zapisuje w folderze Pobrane</div>
+        </div>
+
+        <div class="control-group" style="margin-top: 15px;">
+            <label>Przykłady ładowania</label>
+            <div class="btn-row" style="margin-top: 5px;">
+                <button class="secondary" style="font-size: 11px; flex: 1; padding: 10px 5px;" onclick="showUsage('py')">Kod MicroPython</button>
+                <button class="secondary" style="font-size: 11px; flex: 1; padding: 10px 5px;" onclick="showUsage('c')">Kod C (built-in)</button>
+            </div>
+        </div>
+
+        <div class="control-group" style="margin-top: 25px;">
+            <h2>Importuj Czcionkę</h2>
+            <div style="margin-bottom: 12px;">
+                <label>Wczytaj plik .py lub .h</label>
+                <input type="file" id="file_loader" accept=".py,.h" style="display: none;">
+                <button class="secondary" style="width: 100%; border-style: dashed; margin-top: 5px;" onclick="openFile()">Wybierz Plik .py / .h</button>
+            </div>
+            <div style="margin-top: 15px;">
+                <label>Lub wklej listę Data: [0x..., ...]</label>
+                <textarea id="import_area" style="width:100%; height:80px; background:#000; color:var(--text-dim); border:1px solid var(--border); padding:5px; font-family:monospace; margin-top: 5px;"></textarea>
+            </div>
+            <button class="secondary" style="width: 100%; margin-top: 10px;" onclick="importData()">Zaimportuj Dane</button>
+        </div>
+    </sidebar>
+
+    <script>
+        // App State
+        let config = {
+            width: 3,
+            height: 9,
+            start: 32,
+            end: 126
+        };
+
+        let selectedCharCode = 48; // Default to '0'
+        let fontData = {}; // charCode -> [col0Int, col1Int, ...]
+
+        let isDrawing = false;
+        let drawMode = true; // true = paint, false = erase
+
+        // Undo stack
+        const MAX_UNDO = 50;
+        let undoStack = [];
+        let currentFileHandle = null;
+
+        // IndexedDB Configuration for File Handle Persistence
+        const DB_NAME = 'FontEditorDB';
+        const STORE_NAME = 'state';
+
+        function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, 1);
+                request.onupgradeneeded = (e) => {
+                    const db = e.target.result;
+                    db.createObjectStore(STORE_NAME);
+                };
+                request.onsuccess = (e) => resolve(e.target.result);
+                request.onerror = (e) => reject(e.target.error);
+            });
+        }
+
+        async function saveFileHandle(handle) {
+            try {
+                const db = await initDB();
+                const tx = db.transaction(STORE_NAME, 'readwrite');
+                tx.objectStore(STORE_NAME).put(handle, 'fileHandle');
+                await new Promise((resolve, reject) => {
+                    tx.oncomplete = resolve;
+                    tx.onerror = () => reject(tx.error);
+                });
+            } catch (err) {
+                console.error('Failed to save file handle to IndexedDB', err);
+            }
+        }
+
+        async function loadFileHandle() {
+            try {
+                const db = await initDB();
+                const tx = db.transaction(STORE_NAME, 'readonly');
+                const request = tx.objectStore(STORE_NAME).get('fileHandle');
+                const handle = await new Promise((resolve, reject) => {
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
+                return handle;
+            } catch (err) {
+                console.error('Failed to load file handle from IndexedDB', err);
+                return null;
+            }
+        }
+
+        // LocalStorage App State Persistence
+        function saveAppState() {
+            localStorage.setItem('font_editor_filename', document.getElementById('filename').value);
+            localStorage.setItem('font_editor_format', document.getElementById('export_format').value);
+            localStorage.setItem('font_editor_config', JSON.stringify({
+                width: parseInt(document.getElementById('width').value),
+                height: parseInt(document.getElementById('height').value),
+                start: parseInt(document.getElementById('ascii_start').value),
+                end: parseInt(document.getElementById('ascii_end').value),
+            }));
+            localStorage.setItem('font_editor_fontData', JSON.stringify(fontData));
+        }
+
+        function loadAppState() {
+            const savedConfig = localStorage.getItem('font_editor_config');
+            if (savedConfig) {
+                try {
+                    const parsed = JSON.parse(savedConfig);
+                    document.getElementById('width').value = parsed.width;
+                    document.getElementById('height').value = parsed.height;
+                    document.getElementById('ascii_start').value = parsed.start;
+                    document.getElementById('ascii_end').value = parsed.end;
+                    
+                    config.width = parsed.width;
+                    config.height = parsed.height;
+                    config.start = parsed.start;
+                    config.end = parsed.end;
+                } catch (e) { console.error(e); }
+            }
+            
+            const savedFilename = localStorage.getItem('font_editor_filename');
+            if (savedFilename) {
+                document.getElementById('filename').value = savedFilename;
+            }
+            
+            const savedFormat = localStorage.getItem('font_editor_format');
+            if (savedFormat) {
+                document.getElementById('export_format').value = savedFormat;
+            }
+
+            const savedFontData = localStorage.getItem('font_editor_fontData');
+            if (savedFontData) {
+                try {
+                    fontData = JSON.parse(savedFontData);
+                } catch (e) { console.error(e); }
+            }
+        }
+
+        // Initialize App
+        function init() {
+            // Load state from localStorage
+            loadAppState();
+
+            // Setup Global Mouse Listeners
+            window.addEventListener('mouseup', () => {
+                isDrawing = false;
+                stopResizing();
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (isResizing) handleResizing(e);
+            });
+
+            // Setup Listeners — only on config inputs, NOT file_loader or filename
+            ['width', 'height', 'ascii_start', 'ascii_end'].forEach(id => {
+                document.getElementById(id).addEventListener('change', (e) => {
+                    updateConfig();
+                    saveAppState();
+                });
+            });
+
+            // Format and Filename Listeners
+            document.getElementById('export_format').addEventListener('change', (e) => {
+                const format = e.target.value;
+                let filename = document.getElementById('filename').value.trim();
+                const baseName = filename.replace(/\.(py|h)$/i, '');
+                document.getElementById('filename').value = baseName + (format === 'h' ? '.h' : '.py');
+                updateOutput();
+                saveAppState();
+            });
+
+            document.getElementById('filename').addEventListener('input', (e) => {
+                const filename = e.target.value.trim();
+                if (filename.endsWith('.h')) {
+                    document.getElementById('export_format').value = 'h';
+                } else if (filename.endsWith('.py')) {
+                    document.getElementById('export_format').value = 'py';
+                }
+                updateOutput();
+                saveAppState();
+            });
+
+            // File loader listener
+            document.getElementById('file_loader').addEventListener('change', handleFileSelect);
+
+            // Resizer listener
+            document.getElementById('resizer').addEventListener('mousedown', startResizing);
+
+            // Keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+                    e.preventDefault();
+                    undo();
+                }
+            });
+
+            // Restore File Handle
+            if ('showSaveFilePicker' in window) {
+                loadFileHandle().then(handle => {
+                    if (handle) {
+                        currentFileHandle = handle;
+                        updateSaveInfo(`Ostatni plik: ${handle.name}`);
+                    }
+                });
+            }
+
+            updateConfig();
+            renderCharList();
+            setupGrid();
+            updateOutput();
+        }
+
+        // Resizer Logic
+        let isResizing = false;
+        function startResizing(e) {
+            isResizing = true;
+            document.getElementById('resizer').classList.add('dragging');
+            document.body.style.cursor = 'col-resize';
+        }
+        function stopResizing() {
+            isResizing = false;
+            document.getElementById('resizer').classList.remove('dragging');
+            document.body.style.cursor = 'default';
+        }
+        function handleResizing(e) {
+            const sidebarWidth = window.innerWidth - e.clientX;
+            if (sidebarWidth > 200 && sidebarWidth < 800) {
+                document.body.style.gridTemplateColumns = `280px 1fr 4px ${sidebarWidth}px`;
+            }
+        }
+
+        function updateConfig() {
+            config.width = parseInt(document.getElementById('width').value);
+            config.height = parseInt(document.getElementById('height').value);
+            config.start = parseInt(document.getElementById('ascii_start').value);
+            config.end = parseInt(document.getElementById('ascii_end').value);
+            
+            // Re-setup UI
+            setupGrid();
+            renderCharList();
+            updateOutput();
+        }
+
+        function setupGrid() {
+            const grid = document.getElementById('grid');
+            grid.style.gridTemplateColumns = `repeat(${config.width}, 35px)`;
+            grid.innerHTML = '';
+
+            const cols = fontData[selectedCharCode] || new Array(config.width).fill(0);
+            
+            for (let r = 0; r < config.height; r++) {
+                for (let c = 0; c < config.width; c++) {
+                    const pixel = document.createElement('div');
+                    pixel.className = 'pixel';
+                    
+                    const bitValue = (cols[c] >> r) & 1;
+                    if (bitValue) pixel.classList.add('on');
+
+                    pixel.addEventListener('mousedown', (e) => {
+                        e.preventDefault();
+                        isDrawing = true;
+                        // Determine mode based on current state
+                        drawMode = !((fontData[selectedCharCode] && (fontData[selectedCharCode][c] >> r) & 1));
+                        pushUndo();
+                        togglePixel(r, c, drawMode);
+                    });
+
+                    pixel.addEventListener('mouseenter', (e) => {
+                        if (isDrawing) {
+                            togglePixel(r, c, drawMode);
+                        }
+                    });
+
+                    grid.appendChild(pixel);
+                }
+            }
+        }
+
+        function togglePixel(r, c, mode) {
+            if (!fontData[selectedCharCode]) {
+                fontData[selectedCharCode] = new Array(config.width).fill(0);
+            }
+
+            if (mode) {
+                fontData[selectedCharCode][c] |= (1 << r);
+            } else {
+                fontData[selectedCharCode][c] &= ~(1 << r);
+            }
+            
+            // Fast UI update without full re-render
+            const index = r * config.width + c;
+            const pixel = document.querySelectorAll('.pixel')[index];
+            if (pixel) {
+                if (mode) pixel.classList.add('on');
+                else pixel.classList.remove('on');
+            }
+            
+            updateOutput();
+            saveAppState();
+        }
+
+        function renderCharList() {
+            const container = document.getElementById('char_btn_grid');
+            container.innerHTML = '';
+            for (let i = config.start; i <= config.end; i++) {
+                const btn = document.createElement('div');
+                btn.className = 'char-btn' + (i === selectedCharCode ? ' active' : '');
+                btn.innerText = String.fromCharCode(i);
+                if (i === 32) btn.innerText = "SPC";
+                btn.onclick = () => selectChar(i);
+                container.appendChild(btn);
+            }
+        }
+
+        function selectChar(code) {
+            selectedCharCode = code;
+            const hex = '0x' + code.toString(16).toUpperCase().padStart(2, '0');
+            document.getElementById('editor_title').innerText = `Znak: ${String.fromCharCode(code)} (${code} / ${hex})`;
+            renderCharList();
+            setupGrid();
+            updateOutput(); // Sync code and preview
+        }
+
+        function pushUndo() {
+            const snapshot = JSON.parse(JSON.stringify(fontData));
+            undoStack.push({ fontData: snapshot, selectedCharCode });
+            if (undoStack.length > MAX_UNDO) undoStack.shift();
+            updateUndoButton();
+        }
+
+        function undo() {
+            if (undoStack.length === 0) return;
+            const state = undoStack.pop();
+            fontData = state.fontData;
+            if (state.selectedCharCode !== selectedCharCode) {
+                selectedCharCode = state.selectedCharCode;
+                renderCharList();
+            }
+            setupGrid();
+            updateOutput();
+            updateUndoButton();
+            saveAppState();
+        }
+
+        function updateUndoButton() {
+            const btn = document.getElementById('undoBtn');
+            if (btn) btn.disabled = undoStack.length === 0;
+        }
+
+        function clearChar() {
+            pushUndo();
+            fontData[selectedCharCode] = new Array(config.width).fill(0);
+            setupGrid();
+            updateOutput();
+            saveAppState();
+        }
+
+        function updateOutput() {
+            const format = document.getElementById('export_format').value;
+            const output = document.getElementById('output_code');
+            const dataList = [];
+
+            if (format === 'h') {
+                // Generate C Header
+                let filename = document.getElementById('filename').value.trim();
+                const baseName = filename.replace(/\.(py|h)$/i, '');
+                const cleanBase = baseName || `font_${config.width}x${config.height}`;
+                const sanitized = cleanBase.toLowerCase().replace(/[^a-z0-9_]/g, '_');
+                const macroGuard = sanitized.toUpperCase() + '_H';
+                const arrayName = sanitized + '_data';
+
+                let lines = [];
+                lines.push(`// ${cleanBase}.h – ${config.width}x${config.height} font data (ASCII ${config.start}-${config.end})`);
+                lines.push(`// Generated from tools/font_editor.html`);
+                lines.push(`#ifndef ${macroGuard}`);
+                lines.push(`#define ${macroGuard}`);
+                lines.push(``);
+                lines.push(`#include <stdint.h>`);
+                lines.push(``);
+                lines.push(`#define FONT_WIDTH ${config.width}`);
+                lines.push(`#define FONT_HEIGHT ${config.height}`);
+                lines.push(``);
+                lines.push(`static const uint8_t ${arrayName}[] = {`);
+
+                const mask = (1 << config.height) - 1;
+                for (let i = config.start; i <= config.end; i++) {
+                    const cols = fontData[i] || new Array(config.width).fill(0);
+                    const hexVals = cols.map(val => '0x' + (val & mask).toString(16).toUpperCase().padStart(2, '0')).join(', ');
+                    
+                    let charComment = "";
+                    if (i === 32) {
+                        charComment = " ";
+                    } else if (i === 92) {
+                        charComment = "(backslash)";
+                    } else if (i >= 33 && i <= 126) {
+                        charComment = String.fromCharCode(i);
+                    } else {
+                        charComment = `code ${i}`;
+                    }
+
+                    lines.push(`    ${hexVals}, // ${i}: ${charComment}`);
+                }
+
+                lines.push(`};`);
+                lines.push(``);
+                lines.push(`#endif`);
+
+                output.innerText = lines.join('\n');
+                document.getElementById('output_code_title').innerText = "Wygenerowany Kod C Header";
+            } else {
+                // Generate Python
+                const mask = (1 << config.height) - 1;
+                for (let i = config.start; i <= config.end; i++) {
+                    const cols = fontData[i] || new Array(config.width).fill(0);
+                    cols.forEach(val => {
+                        dataList.push('0x' + (val & mask).toString(16).toUpperCase().padStart(3, '0'));
+                    });
+                }
+                const codeSnippet = `font_data = {\n    "Width": ${config.width},\n    "Height": ${config.height},\n    "Start": ${config.start},\n    "End": ${config.end},\n    "Data": [\n        ${formatList(dataList)}\n    ]\n}`;
+                output.innerText = codeSnippet;
+                document.getElementById('output_code_title').innerText = "Wygenerowany Kod Pythona";
+            }
+            
+            updatePreview();
+        }
+
+        function formatList(list) {
+            let result = "";
+            for (let i = 0; i < list.length; i++) {
+                result += list[i] + ", ";
+                if ((i + 1) % (config.width * 4) === 0) result += "\n        ";
+            }
+            return result.trim();
+        }
+
+        function updatePreview() {
+            const area = document.getElementById('preview_area');
+            area.innerHTML = '';
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'preview-wrapper';
+
+            // --- Context group: 5 chars centered on selected ---
+            const contextLabel = document.createElement('div');
+            contextLabel.className = 'preview-group-label';
+            contextLabel.innerText = 'Kontekst';
+            wrapper.appendChild(contextLabel);
+
+            const contextGroup = document.createElement('div');
+            contextGroup.className = 'preview-group';
+            for (let offset = -2; offset <= 2; offset++) {
+                const code = selectedCharCode + offset;
+                const isValid = code >= config.start && code <= config.end;
+                const isSelected = offset === 0;
+                contextGroup.appendChild(createPreviewChar(code, isValid, isSelected));
+            }
+            wrapper.appendChild(contextGroup);
+
+            area.appendChild(wrapper);
+        }
+
+        function createPreviewChar(code, isValid, isSelected) {
+            const wrapper = document.createElement('div');
+            wrapper.style.textAlign = 'center';
+            wrapper.style.padding = '5px';
+            wrapper.style.minWidth = '30px';
+            if (isSelected) {
+                wrapper.style.background = 'rgba(0, 242, 255, 0.1)';
+                wrapper.style.borderRadius = '4px';
+            }
+
+            const div = document.createElement('div');
+            div.className = 'char-preview' + (!isValid ? ' preview-empty' : '');
+            if (isSelected) {
+                div.style.border = '1px solid var(--accent)';
+                div.style.boxShadow = '0 0 10px var(--accent-glow)';
+            }
+            div.style.gridTemplateColumns = `repeat(${config.width}, 5px)`;
+
+            if (isValid) {
+                const cols = fontData[code] || new Array(config.width).fill(0);
+                for (let r = 0; r < config.height; r++) {
+                    for (let c = 0; c < config.width; c++) {
+                        const p = document.createElement('div');
+                        p.className = 'p-pix' + (((cols[c] >> r) & 1) ? ' on' : '');
+                        div.appendChild(p);
+                    }
+                }
+            } else {
+                // Empty placeholder
+                for (let r = 0; r < config.height; r++) {
+                    for (let c = 0; c < config.width; c++) {
+                        const p = document.createElement('div');
+                        p.className = 'p-pix';
+                        div.appendChild(p);
+                    }
+                }
+            }
+
+            const label = document.createElement('div');
+            const charStr = code === 32 ? 'SPC' : (isValid ? String.fromCharCode(code) : '\u2014');
+            label.innerText = charStr;
+            label.style.fontSize = '11px';
+            label.style.marginTop = '8px';
+            label.style.fontWeight = isSelected ? 'bold' : 'normal';
+            label.style.color = isSelected ? 'var(--accent)' : 'var(--text-dim)';
+
+            wrapper.appendChild(div);
+            wrapper.appendChild(label);
+            return wrapper;
+        }
+
+        function parseCHeader(content) {
+            // 1. Try to find the dimensions in the header comment
+            // e.g. // font_3x7.h – 3x7 font data (ASCII 32-96)
+            let w = null, h = null, s = null, e = null;
+            const headerMatch = content.match(/(\d+)x(\d+)\s+font\s+data\s*\(ASCII\s+(\d+)-(\d+)\)/i);
+            if (headerMatch) {
+                w = parseInt(headerMatch[1], 10);
+                h = parseInt(headerMatch[2], 10);
+                s = parseInt(headerMatch[3], 10);
+                e = parseInt(headerMatch[4], 10);
+            }
+
+            // 2. Parse line by line to map lines with character comments (like "// 33: !")
+            const lines = content.split('\n');
+            const parsedData = {};
+            let detectedWidth = null;
+
+            for (let line of lines) {
+                line = line.trim();
+                const commentMatch = line.match(/\/\/\s*(\d+):/);
+                if (commentMatch) {
+                    const charCode = parseInt(commentMatch[1], 10);
+                    const codePart = line.split('//')[0];
+                    const hexMatches = codePart.match(/0x[0-9A-Fa-f]+/g);
+                    if (hexMatches) {
+                        const values = hexMatches.map(v => parseInt(v, 16));
+                        parsedData[charCode] = values;
+                        if (!detectedWidth) {
+                            detectedWidth = values.length;
+                        }
+                    }
+                }
+            }
+
+            const keys = Object.keys(parsedData).map(Number);
+            if (keys.length > 0) {
+                if (s === null) s = Math.min(...keys);
+                if (e === null) e = Math.max(...keys);
+                if (w === null) w = detectedWidth || 3;
+            } else {
+                // Fallback: extract all hex values in the whole file
+                const allHex = content.match(/0x[0-9A-Fa-f]+/g) || [];
+                const hexValues = allHex.map(v => parseInt(v, 16));
+                if (hexValues.length > 0) {
+                    w = parseInt(document.getElementById('width').value, 10);
+                    s = parseInt(document.getElementById('ascii_start').value, 10);
+                    e = parseInt(document.getElementById('ascii_end').value, 10);
+                    let idx = 0;
+                    for (let i = s; i <= e; i++) {
+                        const cols = [];
+                        for (let col = 0; col < w; col++) {
+                            cols.push(idx < hexValues.length ? hexValues[idx++] : 0);
+                        }
+                        parsedData[i] = cols;
+                    }
+                } else {
+                    throw new Error("Brak danych hex w pliku .h");
+                }
+            }
+
+            if (h === null) {
+                h = parseInt(document.getElementById('height').value, 10);
+            }
+
+            return {
+                width: w,
+                height: h,
+                start: s,
+                end: e,
+                fontData: parsedData
+            };
+        }
+
+        function parsePython(content) {
+            const clean = content.replace(/#.*$/gm, '');
+            const getVal = (key) => {
+                const m = clean.match(new RegExp(`['"]?${key}['"]?\\s*:\\s*(0x[0-9A-Fa-f]+|\\d+)`));
+                if (!m) return null;
+                return m[1].startsWith('0x') ? parseInt(m[1], 16) : parseInt(m[1], 10);
+            };
+
+            const w = getVal("Width");
+            const h = getVal("Height");
+            const s = getVal("Start");
+            const end = getVal("End");
+
+            if (w === null || h === null || s === null || end === null) {
+                throw new Error("Brak wymaganych metadanych (Width, Height, Start, End) w pliku .py");
+            }
+
+            const dataMatch = clean.match(/['"]?Data['"]?\s*:\s*\[(.*?)\]/s);
+            if (!dataMatch) {
+                throw new Error("Brak tablicy Data w pliku .py");
+            }
+
+            const hexStr = dataMatch[1];
+            const hexMatches = hexStr.match(/0x[0-9A-Fa-f]+/g) || [];
+            const hexValues = hexMatches.map(v => parseInt(v, 16));
+
+            const parsedData = {};
+            let idx = 0;
+            for (let i = s; i <= end; i++) {
+                const cols = [];
+                for (let col = 0; col < w; col++) {
+                    cols.push(idx < hexValues.length ? hexValues[idx++] : 0);
+                }
+                parsedData[i] = cols;
+            }
+
+            return {
+                width: w,
+                height: h,
+                start: s,
+                end: end,
+                fontData: parsedData,
+                hexStr: hexStr
+            };
+        }
+
+        function processLoadedFileContent(content, filename) {
+            try {
+                const isHeader = filename.endsWith('.h') || content.includes('#ifndef') || content.includes('#include');
+                let parsed;
+                if (isHeader) {
+                    parsed = parseCHeader(content);
+                } else {
+                    parsed = parsePython(content);
+                }
+
+                // Update UI inputs
+                document.getElementById('width').value = parsed.width;
+                document.getElementById('height').value = parsed.height;
+                document.getElementById('ascii_start').value = parsed.start;
+                document.getElementById('ascii_end').value = parsed.end;
+
+                // Update config object
+                config.width = parsed.width;
+                config.height = parsed.height;
+                config.start = parsed.start;
+                config.end = parsed.end;
+
+                pushUndo();
+                fontData = parsed.fontData;
+
+                // Show raw hex in import_area
+                if (isHeader) {
+                    const hexes = [];
+                    for (let i = parsed.start; i <= parsed.end; i++) {
+                        const cols = fontData[i] || new Array(parsed.width).fill(0);
+                        cols.forEach(v => hexes.push('0x' + v.toString(16).toUpperCase().padStart(2, '0')));
+                    }
+                    document.getElementById('import_area').value = hexes.join(', ');
+                } else {
+                    document.getElementById('import_area').value = parsed.hexStr || '';
+                }
+
+                // Update filename & format
+                const ext = isHeader ? '.h' : '.py';
+                const baseName = filename.replace(/\.(py|h)$/i, '');
+                document.getElementById('filename').value = baseName + ext;
+                document.getElementById('export_format').value = isHeader ? 'h' : 'py';
+
+                // Single render pass
+                renderCharList();
+                setupGrid();
+                updateOutput();
+                saveAppState();
+
+                alert(`Załadowano: ${filename}\nMatrix: ${parsed.width}x${parsed.height}\nDane: ${Object.keys(fontData).length} znaków`);
+            } catch (err) {
+                alert("Błąd podczas analizy pliku: " + err.message);
+                console.error(err);
+            }
+        }
+
+        async function openFile() {
+            if ('showOpenFilePicker' in window) {
+                try {
+                    const suggestedHandle = currentFileHandle || await loadFileHandle();
+                    const pickerOpts = {
+                        startIn: suggestedHandle || 'downloads',
+                        types: [
+                            {
+                                description: 'Font Files (.py, .h)',
+                                accept: {
+                                    'text/plain': ['.py', '.h']
+                                }
+                            }
+                        ]
+                    };
+                    const [handle] = await showOpenFilePicker(pickerOpts);
+                    const file = await handle.getFile();
+                    currentFileHandle = handle;
+                    await saveFileHandle(handle);
+                    updateSaveInfo(`Wczytano: ${handle.name}`);
+                    
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        processLoadedFileContent(event.target.result, file.name);
+                    };
+                    reader.readAsText(file);
+                } catch (err) {
+                    if (err.name !== 'AbortError') {
+                        console.error('Open file failed', err);
+                    }
+                }
+            } else {
+                document.getElementById('file_loader').click();
+            }
+        }
+
+        function handleFileSelect(ev) {
+            const file = ev.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                processLoadedFileContent(event.target.result, file.name);
+            };
+            reader.readAsText(file);
+            ev.target.value = '';
+        }
+
+        function importData(silent = false) {
+            const raw = document.getElementById('import_area').value;
+            
+            // Parse hex values
+            const hexMatches = raw.match(/0x[0-9A-Fa-f]+/g) || [];
+            const hexValues = hexMatches.map(v => parseInt(v, 16));
+
+            if (hexValues.length === 0) {
+                if (!silent) alert("Nie znaleziono poprawnych danych hex!");
+                return;
+            }
+
+            // Read config directly from UI — NO side-effect rendering
+            config.width = parseInt(document.getElementById('width').value);
+            config.height = parseInt(document.getElementById('height').value);
+            config.start = parseInt(document.getElementById('ascii_start').value);
+            config.end = parseInt(document.getElementById('ascii_end').value);
+            
+            const w = config.width;
+            
+            pushUndo();
+            // Clear and fill fontData
+            fontData = {};
+            let idx = 0;
+            for (let i = config.start; i <= config.end; i++) {
+                const cols = [];
+                for (let col = 0; col < w; col++) {
+                    cols.push(idx < hexValues.length ? hexValues[idx++] : 0);
+                }
+                fontData[i] = cols;
+            }
+            
+            // Debug: verify mapping
+            console.log(`Manual Import: ${hexValues.length} values, start=${config.start}, end=${config.end}, width=${w}`);
+            console.log(`fontData[${config.start}]:`, fontData[config.start]);
+            
+            // Single render pass at the end
+            renderCharList();
+            setupGrid();
+            updateOutput();
+            saveAppState();
+            if (!silent) alert(`Zaimportowano ${hexValues.length} wartości (Szerokość: ${w}).`);
+        }
+
+        function copyCode() {
+            const text = document.getElementById('output_code').innerText;
+            navigator.clipboard.writeText(text);
+            const msg = document.getElementById('copy_msg');
+            msg.style.display = 'block';
+            setTimeout(() => msg.style.display = 'none', 2000);
+        }
+
+        function getExportContent() {
+            return document.getElementById('output_code').innerText;
+        }
+
+        function getExportFilename() {
+            let filename = document.getElementById('filename').value.trim();
+            const format = document.getElementById('export_format').value;
+            const ext = format === 'h' ? '.h' : '.py';
+            if (!filename) filename = `font_${config.width}x${config.height}`;
+            const baseName = filename.replace(/\.(py|h)$/i, '');
+            return baseName + ext;
+        }
+
+        function updateSaveInfo(text) {
+            const el = document.getElementById('save_path_info');
+            if (el) el.innerText = text || 'Zapisuje w folderze Pobrane';
+        }
+
+        async function saveFile() {
+            if (currentFileHandle) {
+                // Explicitly request/verify permission before writing
+                const opts = { mode: 'readwrite' };
+                let perm = await currentFileHandle.queryPermission(opts);
+                if (perm !== 'granted') {
+                    perm = await currentFileHandle.requestPermission(opts);
+                }
+                if (perm !== 'granted') {
+                    currentFileHandle = null;
+                    await saveFileAs();
+                    return;
+                }
+
+                if (!confirm(`Plik "${currentFileHandle.name}" już istnieje. Nadpisać?`)) {
+                    return;
+                }
+                try {
+                    const writable = await currentFileHandle.createWritable();
+                    await writable.write(getExportContent());
+                    await writable.close();
+                    await saveFileHandle(currentFileHandle);
+                    updateSaveInfo(`Zapisano: ${currentFileHandle.name}`);
+                    showToast('Zapisano!');
+                    return;
+                } catch (err) {
+                    console.error('Save failed, falling back to Save As', err);
+                    currentFileHandle = null;
+                }
+            }
+            await saveFileAs();
+        }
+
+        async function saveFileAs() {
+            const content = getExportContent();
+            const filename = getExportFilename();
+
+            if ('showSaveFilePicker' in window) {
+                try {
+                    const format = document.getElementById('export_format').value;
+                    const ext = format === 'h' ? '.h' : '.py';
+                    const desc = format === 'h' ? 'C Header Files' : 'Python Files';
+                    const suggestedHandle = currentFileHandle || await loadFileHandle();
+                    
+                    const pickerOpts = {
+                        suggestedName: filename,
+                        startIn: suggestedHandle || 'downloads',
+                        types: [{
+                            description: desc,
+                            accept: { 'text/plain': [ext] }
+                        }]
+                    };
+                    const handle = await showSaveFilePicker(pickerOpts);
+                    const writable = await handle.createWritable();
+                    await writable.write(content);
+                    await writable.close();
+                    currentFileHandle = handle;
+                    await saveFileHandle(handle);
+                    updateSaveInfo(`Zapisano: ${handle.name}`);
+                    showToast('Zapisano!');
+                } catch (err) {
+                    if (err.name !== 'AbortError') {
+                        console.error('Save As failed', err);
+                        fallbackDownload(content, filename);
+                    }
+                }
+            } else {
+                fallbackDownload(content, filename);
+            }
+        }
+
+        function fallbackDownload(content, filename) {
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+            updateSaveInfo('Zapisano w folderze Pobrane');
+            showToast('Zapisano!');
+        }
+
+        function showToast(msg) {
+            // Reuse copy toast element
+            const toast = document.getElementById('copy_msg');
+            if (toast) {
+                const original = toast.innerText;
+                toast.innerText = msg;
+                toast.style.display = 'block';
+                setTimeout(() => {
+                    toast.style.display = 'none';
+                    toast.innerText = original;
+                }, 2000);
+            }
+        }
+
+        // Legacy export function for compatibility
+        function exportData() {
+            saveFileAs();
+        }
+
+        let activeUsageType = 'py';
+
+        function showUsage(type) {
+            activeUsageType = type;
+            document.getElementById('usage_variant').value = 'standard';
+            updateUsageSnippet();
+            document.getElementById('usageModal').classList.add('active');
+        }
+
+        function updateUsageSnippet() {
+            const type = activeUsageType;
+            const variant = document.getElementById('usage_variant').value;
+            const width = config.width;
+            const height = config.height;
+            const filename = document.getElementById('filename').value.trim();
+            const baseName = filename.replace(/\.(py|h)$/i, '') || `font_${width}x${height}`;
+            const sanitized = baseName.toLowerCase().replace(/[^a-z0-9_]/g, '_');
+            
+            let code = "";
+            let title = "";
+            
+            if (type === 'py') {
+                if (variant === 'standard') {
+                    title = "Ładowanie czcionki w MicroPython (z LEDDisplaySystem)";
+                    code = `# 1. Zapisz wyeksportowany plik Python jako ${sanitized}.py (lub .mpy) w pamięci ESP32\n` +
+                           `# 2. Użyj poniższego kodu w swoim skrypcie głównym (np. main.py):\n\n` +
+                           `import leddisplay\n` +
+                           `import ${sanitized}\n\n` +
+                           `# Inicjalizacja wyświetlacza (dostosuj piny i wymiary)\n` +
+                           `display = leddisplay.LEDDisplaySystem(self, rows=138, cols=4, render_direction=0, spacing=2)\n\n` +
+                           `# Załaduj zewnętrzną czcionkę pod wybraną nazwą (np. "${sanitized}")\n` +
+                           `display.load_external_font("${sanitized}", ${sanitized}.font_data)\n\n` +
+                           `# Ustaw aktywną czcionkę\n` +
+                           `display.set_font("${sanitized}")\n`;
+                } else {
+                    title = "Bezpośredni odczyt czcionki w MicroPython (bez leddisplay)";
+                    code = `# Przykład bezpośredniego dostępu do kolumn znaku z pliku ${sanitized}.py\n` +
+                           `import ${sanitized}\n\n` +
+                           `def pobierz_kolumny_znaku(char):\n` +
+                           `    char_code = ord(char)\n` +
+                           `    fd = ${sanitized}.font_data\n` +
+                           `    start = fd["Start"]\n` +
+                           `    end = fd["End"]\n` +
+                           `    width = fd["Width"]\n\n` +
+                           `    if start <= char_code <= end:\n` +
+                           `        idx = char_code - start\n` +
+                           `        # Pobierz kolumny dla wybranego znaku (każdy element to kolumna bitowa)\n` +
+                           `        return fd["Data"][idx * width : (idx + 1) * width]\n` +
+                           `    else:\n` +
+                           `        # Zwróć puste kolumny jako fallback\n` +
+                           `        return [0] * width\n\n` +
+                           `# Użycie:\n` +
+                           `kolumny = pobierz_kolumny_znaku('A')\n` +
+                           `print("Kolumny dla 'A':", [hex(col) for col in kolumny])\n`;
+                }
+            } else if (type === 'c') {
+                if (variant === 'standard') {
+                    title = "Integracja czcionki w C (ESP-IDF / usermod)";
+                    code = `// 1. Zapisz wyeksportowany nagłówek jako ${sanitized}.h w folderze custom_modules/leddisplay/\n` +
+                           `// 2. W leddisplay.c dołącz czcionkę i użyj jej parametrów w konstruktorze:\n\n` +
+                           `#include "${sanitized}.h"\n\n` +
+                           `// ... wewnątrz funkcji inicjalizacji wyświetlacza ...\n` +
+                           `self->font_width = FONT_WIDTH;\n` +
+                           `self->font_height = FONT_HEIGHT;\n` +
+                           `self->font_spacing = spacing;\n\n` +
+                           `// Oblicz liczbę znaków\n` +
+                           `size_t builtin_data_len = sizeof(${sanitized}_data);\n` +
+                           `size_t builtin_num_chars = builtin_data_len / FONT_WIDTH;\n\n` +
+                           `uint16_t *builtin_16 = m_new(uint16_t, builtin_data_len);\n` +
+                           `for (size_t i = 0; i < builtin_data_len; i++) {\n` +
+                           `    builtin_16[i] = ${sanitized}_data[i];\n` +
+                           `}\n\n` +
+                           `self->font_data = builtin_16;\n` +
+                           `strcpy(self->fonts[0].name, "${sanitized}");\n` +
+                           `self->fonts[0].width = FONT_WIDTH;\n` +
+                           `self->fonts[0].height = FONT_HEIGHT;\n` +
+                           `self->fonts[0].data = builtin_16;\n`;
+                } else {
+                    title = "Bezpośredni odczyt czcionki w C (bez leddisplay)";
+                    code = `// Przykład bezpośredniego dostępu do kolumn znaku z pliku ${sanitized}.h\n` +
+                           `#include <stdio.h>\n` +
+                           `#include "${sanitized}.h"\n\n` +
+                           `// Pobiera wskaźnik do kolumn znaku (zwraca NULL jeśli poza zakresem)\n` +
+                           `const uint8_t* pobierz_kolumny_znaku(char ch) {\n` +
+                           `    int start_char = 32; // Standardowo ASCII 32 (spacja)\n` +
+                           `    // Całkowity rozmiar danych podzielony na szerokość jednego znaku\n` +
+                           `    int total_chars = sizeof(${sanitized}_data) / FONT_WIDTH;\n` +
+                           `    int end_char = start_char + total_chars - 1;\n` +
+                           `    \n` +
+                           `    int idx = (int)ch - start_char;\n` +
+                           `    if (idx < 0 || idx >= total_chars) {\n` +
+                           `        return NULL; // Znak spoza zakresu czcionki\n` +
+                           `    }\n` +
+                           `    \n` +
+                           `    // Zwróć adres pierwszej kolumny wybranego znaku\n` +
+                           `    return &${sanitized}_data[idx * FONT_WIDTH];\n` +
+                           `}\n\n` +
+                           `// Użycie:\n` +
+                           `const uint8_t *kolumny = pobierz_kolumny_znaku('A');\n` +
+                           `if (kolumny != NULL) {\n` +
+                           `    for (int col = 0; col < FONT_WIDTH; col++) {\n` +
+                           `        printf("Kolumna %d: 0x%02X\\n", col, kolumny[col]);\n` +
+                           `    }\n` +
+                           `}\n`;
+                }
+            }
+            
+            document.getElementById('usageModalTitle').innerText = title;
+            document.getElementById('usageCodeSnippet').innerText = code;
+        }
+
+        function closeModal() {
+            document.getElementById('usageModal').classList.remove('active');
+        }
+
+        function copyUsageCode() {
+            const code = document.getElementById('usageCodeSnippet').innerText;
+            navigator.clipboard.writeText(code).then(() => {
+                showToast("Skopiowano kod!");
+            });
+        }
+
+        window.addEventListener('click', (e) => {
+            const modal = document.getElementById('usageModal');
+            if (e.target === modal) {
+                closeModal();
+            }
+        });
+
+        init();
+    </script>
+
+    <!-- Modal for Usage Code Snippets -->
+    <div class="modal-overlay" id="usageModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div class="modal-title" id="usageModalTitle">Instrukcja Użycia</div>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                    <label style="margin: 0;">Wariant implementacji:</label>
+                    <select id="usage_variant" style="background:#000; border:1px solid var(--border); color:var(--accent); padding:4px 8px; border-radius:4px; outline:none; font-size:0.75rem;" onchange="updateUsageSnippet()">
+                        <option value="standard">Z użyciem LEDDisplaySystem</option>
+                        <option value="raw">Bezpośredni odczyt (surowe dane)</option>
+                    </select>
+                </div>
+                <pre id="usageCodeSnippet" style="color: #00f2ff; background: #000; border: 1px solid var(--border); padding: 15px; max-height: 350px; overflow-y: auto; font-family: monospace; font-size: 0.75rem; text-align: left;"></pre>
+            </div>
+            <div class="modal-actions">
+                <button class="secondary" onclick="copyUsageCode()">Kopiuj Kod</button>
+                <button class="primary" onclick="closeModal()">Zamknij</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
