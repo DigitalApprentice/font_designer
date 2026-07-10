@@ -17,7 +17,7 @@ The **LED Font Designer** (`font_editor.html`) is an interactive, browser-based 
 The interface is divided into three functional columns:
 
 1. **Left Sidebar (Configuration & Character List)**:
-   - **Dimensions**: Configure the cell width and height (e.g., `5`x`7`, `8`x`8`, `8`x`16`).
+   - **Dimensions**: Configure the cell width and height (e.g., `4`x`7`, `5`x`7`, `8`x`8`, `8`x`16`).
    - **ASCII Range**: Define the start and end ASCII character boundaries (e.g., standard printable characters start at `32` (Space) and end at `126` (`~`)).
    - **Character Grid**: Clickable buttons for each character in the defined range. Select a character to edit its bitmap representation in the main canvas.
 
